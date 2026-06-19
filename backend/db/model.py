@@ -9,12 +9,23 @@ class File(SQLModel, table=True):
     name: str = Field(index=True)
     created: datetime = Field(default_factory=datetime.now)
     modified: datetime = Field(default_factory=datetime.now)
-    parent_id: int | None = Field(default=None, foreign_key="file.id", index=True)
+    parent_id: int | None = Field(
+        default=None,
+        foreign_key="file.id",
+        index=True,
+        ondelete="CASCADE",
+    )
     parent_folder: Optional["File"] = Relationship(
         back_populates="children",
         sa_relationship_kwargs={"remote_side": "File.id"},
     )
-    children: list["File"] = Relationship(back_populates="parent_folder")
+    children: list["File"] = Relationship(
+        back_populates="parent_folder",
+        cascade_delete=True,
+        sa_relationship_kwargs={
+            "single_parent": True,
+        },
+    )
 
     def __init__(self, name: str, parent_id: int | None, is_folder: bool = False):
         self.name = name

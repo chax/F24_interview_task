@@ -1,9 +1,15 @@
 from datetime import datetime
 
 from sqlmodel import Session, select
+from sqlalchemy.exc import IntegrityError
 
 from .model import File
 
+class UniqueNameError(Exception):
+    pass
+
+class FolderNotEmptyError(Exception):
+    pass
 
 def get_by_id(session: Session, file_id: int) -> File | None:
     return session.get(File, file_id)
@@ -38,10 +44,13 @@ def create_file(session: Session, parent_id: int | None, name: str, is_folder: b
         if folder is None:
             return None
     file = File(name, parent_id, is_folder)
-    session.add(file)
-    session.commit()
-    session.refresh(file)
-    return file
+    try:
+        session.add(file)
+        session.commit()
+        session.refresh(file)
+        return file
+    except IntegrityError as e:
+        raise UniqueNameError(e)
 
 
 def rename_file(session: Session, file_id: int, name: str) -> File:
@@ -50,13 +59,21 @@ def rename_file(session: Session, file_id: int, name: str) -> File:
         return None
     file.name = name
     file.modified = datetime.now()
-    session.add(file)
-    session.commit()
-    session.refresh(file)
-    return file
+    try:
+        session.add(file)
+        session.commit()
+        session.refresh(file)
+        return file
+    except IntegrityError as e:
+        raise UniqueNameError(e)
 
 
-def delete_file(session: Session, file_id: int) -> None:
+def delete_file(session: Session, file_id: int, recursive: bool = False) -> None:
     file = get_by_id(session, file_id)
-    session.delete(file)
-    session.commit()
+    if file is not None:
+        if len(file.children) == 0 or len(file.children) > 0 and recursive:
+            session.delete(file)
+            session.commit()
+        else:
+            raise FolderNotEmptyError()
+
