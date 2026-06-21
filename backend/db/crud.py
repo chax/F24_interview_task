@@ -94,14 +94,14 @@ def delete_file(session: Session, file_id: int, recursive: bool = False) -> None
         else:
             raise FolderNotEmptyError()
 
-def search_file(session: Session, starts_with: str, parent_id: int, limit: int = 10):
-    search_query = "SELECT * FROM FileTree WHERE name LIKE :starts_with AND is_folder = 0 LIMIT :limit"
-    statement = select(File).from_statement(text(RECURSIVE_FILE_TREE + search_query))
+def search_file(session: Session, starts_with: str, parent_id: int, limit: int = 10) -> list[str]:
+    search_query = "SELECT DISTINCT name FROM FileTree WHERE name LIKE :starts_with AND is_folder = 0 ORDER BY name LIMIT :limit"
+    query = text(RECURSIVE_FILE_TREE + search_query)
     params = {"parent_id": parent_id, "starts_with": f"{starts_with}%", "limit": limit}
-    result = session.exec(statement, params=params).scalars().all()
+    result = session.exec(query, params=params).scalars().all()
     return result
 
-def get_files_by_name(session: Session, file_name: str, parent_id: int):
+def get_files_by_name(session: Session, file_name: str, parent_id: int) -> list[File]:
     search_query = "SELECT * FROM FileTree WHERE name = :file_name AND is_folder = 0"
     statement = select(File).from_statement(text(RECURSIVE_FILE_TREE + search_query))
     params = {"parent_id": parent_id, "file_name": file_name}
