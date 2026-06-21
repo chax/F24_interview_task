@@ -275,55 +275,57 @@ export function FolderContent({
         </button>
       </div>
 
-      <div className="entry-list-header">
-        <span aria-hidden="true" />
-        <span>Name</span>
-        <span>Created</span>
-        <span>Modified</span>
-        <span>Actions</span>
-      </div>
+      <div className="entry-table">
+        <div className="entry-list-header">
+          <span aria-hidden="true" />
+          <span>Name</span>
+          <span>Created</span>
+          <span>Modified</span>
+          <span>Actions</span>
+        </div>
 
-      <div className="entry-list">
-        {draft && (
-          <DraftRow
-            key={draft}
-            kind={draft}
-            defaultName={draft === 'folder' ? 'New Folder' : 'New File'}
-            onCommit={async (name) => {
-              if (draft === 'folder') await onCreateFolder(name)
-              else await onCreateFile(name)
-              setDraft(null)
-            }}
-            onCancel={() => setDraft(null)}
-          />
-        )}
-        {loading ? (
-          <p className="hint">Loading…</p>
-        ) : sortedFolders.length === 0 && sortedFiles.length === 0 && !draft ? (
-          <p className="hint">This folder is empty.</p>
-        ) : (
-          <>
-            {sortedFolders.map((folder) => (
-              <EntryRow
-                key={`folder-${folder.id}`}
-                entry={folder}
-                kind="folder"
-                onOpen={() => onNavigate(folder.id)}
-                onRename={(name) => onRename('folder', folder, name)}
-                onDelete={(recursive) => onDelete('folder', folder, recursive)}
-              />
-            ))}
-            {sortedFiles.map((file) => (
-              <EntryRow
-                key={`file-${file.id}`}
-                entry={file}
-                kind="file"
-                onRename={(name) => onRename('file', file, name)}
-                onDelete={(recursive) => onDelete('file', file, recursive)}
-              />
-            ))}
-          </>
-        )}
+        <div className="entry-list">
+          {draft && (
+            <DraftRow
+              key={draft}
+              kind={draft}
+              defaultName={draft === 'folder' ? 'New Folder' : 'New File'}
+              onCommit={async (name) => {
+                if (draft === 'folder') await onCreateFolder(name)
+                else await onCreateFile(name)
+                setDraft(null)
+              }}
+              onCancel={() => setDraft(null)}
+            />
+          )}
+          {loading ? (
+            <p className="hint">Loading…</p>
+          ) : sortedFolders.length === 0 && sortedFiles.length === 0 && !draft ? (
+            <p className="hint">This folder is empty.</p>
+          ) : (
+            <>
+              {sortedFolders.map((folder) => (
+                <EntryRow
+                  key={`folder-${folder.id}`}
+                  entry={folder}
+                  kind="folder"
+                  onOpen={() => onNavigate(folder.id)}
+                  onRename={(name) => onRename('folder', folder, name)}
+                  onDelete={(recursive) => onDelete('folder', folder, recursive)}
+                />
+              ))}
+              {sortedFiles.map((file) => (
+                <EntryRow
+                  key={`file-${file.id}`}
+                  entry={file}
+                  kind="file"
+                  onRename={(name) => onRename('file', file, name)}
+                  onDelete={(recursive) => onDelete('file', file, recursive)}
+                />
+              ))}
+            </>
+          )}
+        </div>
       </div>
     </section>
   )
