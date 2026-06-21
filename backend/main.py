@@ -73,3 +73,13 @@ async def delete_path(session: SessionDep, file_id: int, recursive: bool = False
         return crud.delete_file(session, file_id, recursive)
     except crud.FolderNotEmptyError:
         raise HTTPException(status_code=400, detail="Folder not empty")
+
+@app.get("/files/search")
+async def search_file(session: SessionDep, starts_with: str, parent_id: int | None = None):
+    parent = _get_folder_or_404(session, parent_id)
+    return crud.search_file(session, starts_with, parent.id)
+
+@app.get("/files/get_by_name")
+async def get_files_by_name(session: SessionDep, file_name: str, parent_id: int | None = None):
+    parent = _get_folder_or_404(session, parent_id)
+    return crud.get_files_by_name(session, file_name, parent.id)

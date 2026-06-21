@@ -1,9 +1,26 @@
 from datetime import datetime
 
-from sqlmodel import Session, select
+from sqlmodel import Session, select, text
 from sqlalchemy.exc import IntegrityError
 
 from .model import File
+
+
+RECURSIVE_FILE_TREE = """
+    WITH RECURSIVE FileTree AS (
+        -- 1. Anchor member: gets the starting root node
+        SELECT *, 0 as depth
+        FROM file
+        WHERE id = :parent_id
+
+        UNION ALL
+
+        -- 2. Recursive member: joins the CTE to find children
+        SELECT f.*, ft.depth + 1
+        FROM file f
+        JOIN FileTree ft ON f.parent_id = ft.id
+    )
+"""
 
 class UniqueNameError(Exception):
     pass
@@ -76,4 +93,18 @@ def delete_file(session: Session, file_id: int, recursive: bool = False) -> None
             session.commit()
         else:
             raise FolderNotEmptyError()
+
+def search_file(session: Session, starts_with: str, parent_id: int, limit: int = 10):
+    search_query = "SELECT * FROM FileTree WHERE name LIKE :starts_with AND is_folder = 0 LIMIT :limit"
+    statement = select(File).from_statement(text(RECURSIVE_FILE_TREE + search_query))
+    params = {"parent_id": parent_id, "starts_with": f"{starts_with}%", "limit": limit}
+    result = session.exec(statement, params=params).scalars().all()
+    return result
+
+def get_files_by_name(session: Session, file_name: str, parent_id: int):
+    search_query = "SELECT * FROM FileTree WHERE name = :file_name AND is_folder = 0"
+    statement = select(File).from_statement(text(RECURSIVE_FILE_TREE + search_query))
+    params = {"parent_id": parent_id, "file_name": file_name}
+    result = session.exec(statement, params=params).scalars().all()
+    return result
 
