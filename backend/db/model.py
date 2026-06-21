@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from pydantic import computed_field
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
 class File(SQLModel, table=True):
@@ -33,3 +34,15 @@ class File(SQLModel, table=True):
         self.is_folder = is_folder
 
     __table_args__ = (UniqueConstraint("name", "parent_id"), )
+
+    @computed_field
+    @property
+    def path(self) -> str:
+        # Walks the parent_folder chain up to (but not including) the root row,
+        # so it's recomputed from current names on every fetch instead of stored.
+        parts: list[str] = []
+        node: Optional["File"] = self
+        while node is not None and node.parent_id is not None:
+            parts.append(node.name)
+            node = node.parent_folder
+        return "/" + "/".join(reversed(parts))
