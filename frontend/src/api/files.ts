@@ -4,6 +4,7 @@ export type FileEntry = {
   created: string
   modified: string
   parent_id: number | null
+  path: string
 }
 
 export type EntryKind = 'folder' | 'file'
@@ -66,4 +67,12 @@ export function renameEntry(kind: EntryKind, fileId: number, name: string): Prom
 export function deleteEntry(kind: EntryKind, fileId: number, recursive = false): Promise<void> {
   const path = kind === 'folder' ? '/folders/delete' : '/files/delete'
   return request(`${path}${buildQuery({ file_id: fileId, recursive })}`, { method: 'DELETE' })
+}
+
+export function searchFiles(startsWith: string, parentId: number | null): Promise<string[]> {
+  return request(`/files/search${buildQuery({ starts_with: startsWith, parent_id: parentId ?? undefined })}`)
+}
+
+export function getFilesByName(fileName: string, parentId: number | null): Promise<FileEntry[]> {
+  return request(`/files/get_by_name${buildQuery({ file_name: fileName, parent_id: parentId ?? undefined })}`)
 }
