@@ -4,14 +4,17 @@ import {
   createFile,
   createFolder,
   deleteEntry,
+  getFilesByName,
   listFiles,
   listFolders,
   renameEntry,
+  searchFiles,
   type EntryKind,
   type FileEntry,
 } from '../api/files'
 import { FolderTreeNode } from './FolderTree'
 import { FolderContent } from './FolderContent'
+import { SearchResults } from './SearchResults'
 import { TreeContext, type TreeContextValue } from './treeContext'
 import './FileExplorer.css'
 
@@ -52,6 +55,9 @@ export function FileExplorer() {
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
   const [files, setFiles] = useState<FileEntry[] | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
+  const [searchResults, setSearchResults] = useState<FileEntry[] | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [highlightedFileId, setHighlightedFileId] = useState<number | null>(null)
 
   const loadFolderChildren = useCallback(async (parentId: number | null) => {
     try {
@@ -125,6 +131,8 @@ export function FileExplorer() {
   const selectFolder = useCallback(
     (folderId: number | null) => {
       setSelectedFolderId(folderId)
+      setSearchResults(null)
+      setHighlightedFileId(null)
       setError(null)
       loadFiles(folderId)
       if (!childrenByParent.has(folderId)) {
@@ -157,6 +165,34 @@ export function FileExplorer() {
     segments.unshift({ id: null, name: '/' })
     return segments
   }, [selectedFolderId, entriesById])
+
+  const fetchSearchSuggestions = useCallback(
+    async (query: string, fromRoot: boolean): Promise<string[]> => {
+      try {
+        return await searchFiles(query, fromRoot ? null : selectedFolderId)
+      } catch (err) {
+        setError(describeError(err))
+        return []
+      }
+    },
+    [selectedFolderId],
+  )
+
+  async function handleSearchSubmit(query: string, fromRoot: boolean) {
+    setError(null)
+    try {
+      const results = await getFilesByName(query, fromRoot ? null : selectedFolderId)
+      setSearchQuery(query)
+      setSearchResults(results)
+    } catch (err) {
+      setError(describeError(err))
+    }
+  }
+
+  function handleNavigateToFile(file: FileEntry) {
+    selectFolder(file.parent_id)
+    setHighlightedFileId(file.id)
+  }
 
   async function handleCreateFolder(name: string) {
     setError(null)
@@ -239,18 +275,31 @@ export function FileExplorer() {
           <FolderTreeNode id={null} name="/" depth={0} />
         </nav>
       </TreeContext.Provider>
-      <FolderContent
-        path={path}
-        folders={childrenByParent.get(selectedFolderId)}
-        files={files}
-        onCreateFolder={handleCreateFolder}
-        onCreateFile={handleCreateFile}
-        onRename={handleRename}
-        onDelete={handleDelete}
-        onNavigate={selectFolder}
-        error={error}
-        onDismissError={() => setError(null)}
-      />
+      {searchResults !== null ? (
+        <SearchResults
+          query={searchQuery}
+          results={searchResults}
+          onBack={() => setSearchResults(null)}
+          onNavigateToFile={handleNavigateToFile}
+        />
+      ) : (
+        <FolderContent
+          path={path}
+          folders={childrenByParent.get(selectedFolderId)}
+          files={files}
+          onCreateFolder={handleCreateFolder}
+          onCreateFile={handleCreateFile}
+          onRename={handleRename}
+          onDelete={handleDelete}
+          onNavigate={selectFolder}
+          onFetchSearchSuggestions={fetchSearchSuggestions}
+          onSearchSubmit={handleSearchSubmit}
+          highlightedFileId={highlightedFileId}
+          onClearHighlight={() => setHighlightedFileId(null)}
+          error={error}
+          onDismissError={() => setError(null)}
+        />
+      )}
     </div>
   )
 }

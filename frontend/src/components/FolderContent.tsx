@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { EntryKind, FileEntry } from '../api/files'
 import type { PathSegment } from './FileExplorer'
+import { SearchBar } from './SearchBar'
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -17,12 +18,20 @@ type EntryRowProps = {
   onOpen?: () => void
   onRename: (newName: string) => Promise<void>
   onDelete: (recursive?: boolean) => Promise<void>
+  highlighted?: boolean
 }
 
-function EntryRow({ entry, kind, onOpen, onRename, onDelete }: EntryRowProps) {
+function EntryRow({ entry, kind, onOpen, onRename, onDelete, highlighted }: EntryRowProps) {
   const [mode, setMode] = useState<'idle' | 'rename' | 'confirm-delete'>('idle')
   const [nameInput, setNameInput] = useState(entry.name)
   const [busy, setBusy] = useState(false)
+  const rowRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (highlighted) {
+      rowRef.current?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [highlighted])
 
   async function submitRename() {
     const trimmed = nameInput.trim()
@@ -53,7 +62,7 @@ function EntryRow({ entry, kind, onOpen, onRename, onDelete }: EntryRowProps) {
   }
 
   return (
-    <div className="entry-row">
+    <div ref={rowRef} className={`entry-row${highlighted ? ' entry-row-highlighted' : ''}`}>
       <span className="entry-icon" aria-hidden="true">
         {kind === 'folder' ? '📁' : '📄'}
       </span>
@@ -198,6 +207,10 @@ type FolderContentProps = {
   onRename: (kind: EntryKind, entry: FileEntry, newName: string) => Promise<void>
   onDelete: (kind: EntryKind, entry: FileEntry, recursive?: boolean) => Promise<void>
   onNavigate: (id: number | null) => void
+  onFetchSearchSuggestions: (query: string, fromRoot: boolean) => Promise<string[]>
+  onSearchSubmit: (query: string, fromRoot: boolean) => void
+  highlightedFileId: number | null
+  onClearHighlight: () => void
   error: string | null
   onDismissError: () => void
 }
@@ -211,6 +224,10 @@ export function FolderContent({
   onRename,
   onDelete,
   onNavigate,
+  onFetchSearchSuggestions,
+  onSearchSubmit,
+  highlightedFileId,
+  onClearHighlight,
   error,
   onDismissError,
 }: FolderContentProps) {
@@ -232,7 +249,7 @@ export function FolderContent({
   const sortedFiles = [...(files ?? [])].sort((a, b) => a.name.localeCompare(b.name))
 
   return (
-    <section className="folder-content">
+    <section className="folder-content" onClick={onClearHighlight}>
       <header className="content-header">
         <nav className="breadcrumb" aria-label="Current path">
           {path.map((segment, i) => {
@@ -273,6 +290,8 @@ export function FolderContent({
         <button type="button" onClick={() => setDraft('file')}>
           New File
         </button>
+        <span className="toolbar-separator" aria-hidden="true" />
+        <SearchBar onFetchSuggestions={onFetchSearchSuggestions} onSubmit={onSearchSubmit} />
       </div>
 
       <div className="entry-table">
@@ -321,6 +340,7 @@ export function FolderContent({
                   kind="file"
                   onRename={(name) => onRename('file', file, name)}
                   onDelete={(recursive) => onDelete('file', file, recursive)}
+                  highlighted={file.id === highlightedFileId}
                 />
               ))}
             </>
