@@ -8,7 +8,7 @@ We want to create a large-scale browser-based file system, functionally similar 
     This will be used in the search box to show possible matches when the user is typing. Only “start with” logic is required.
  - Delete folders and files
 
-For this exercise, you can assume that a file is simply its name and does not contain any othercontent.
+For this exercise, you can assume that a file is simply its name and does not contain any other content.
 
 The frontend does NOT have to include any design or be adapted for mobile devices. 
 The default React framework is acceptable.

@@ -1,4 +1,4 @@
-This repository provides a solution to an [interview task for F24](task.md).
+This repository provides a solution to an [interview task for F24](README.task.md).
 
 Solution is written in two parts, backend and frontend. Backend is written in Python using FastAPI framework. Frontend is writen in React with Vite server.
 
@@ -28,6 +28,7 @@ fastapi dev
 ```
 
 API will start on default port 8000
+
 You can test the api and check input and output schemas by opening this url:
 http://127.0.0.1:8000/docs
 
