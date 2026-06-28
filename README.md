@@ -34,6 +34,18 @@ http://127.0.0.1:8000/docs
 
 Database is sqlite3 database which keeps data in a single file. On first startup, database file will be automatically created.
 
+## Running backend unit tests
+
+From the `backend` dir, with the virtual environment activated, install the test dependencies and run pytest:
+```sh
+pip install -r requirements-dev.txt
+pytest
+```
+
+This also runs with coverage enabled (configured in `pytest.ini`)
+
+Tests run against an isolated in-memory SQLite database, so they never touch your local `database.db`.
+
 # Frontend
 
 ## Installing dependencies and starting the App in dev mode
