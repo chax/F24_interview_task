@@ -5,7 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import Session
 
 from db import crud
-from db.database import create_db_and_tables, get_session
+from db.database import create_db_and_tables, engine, get_session
 from db.model import File
 
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -14,6 +14,11 @@ SessionDep = Annotated[Session, Depends(get_session)]
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+    # Ensure the root folder exists before serving requests, so concurrent
+    # first requests can't race on creating it: SQLite's (name, parent_id)
+    # unique constraint does not protect rows where parent_id IS NULL.
+    with Session(engine) as session:
+        crud.get_or_create_root_folder(session)
     yield
 
 
@@ -62,9 +67,12 @@ async def create_file(session: SessionDep, name: str, parent_id: int | None = No
 @app.post("/files/rename")
 async def rename_file(session: SessionDep, file_id: int, name: str):
     try:
-        return crud.rename_file(session, file_id, name)
+        renamed = crud.rename_file(session, file_id, name)
     except crud.UniqueNameError:
         raise HTTPException(status_code=400, detail="File names in same folder must be unique.")
+    if renamed is None:
+        raise HTTPException(status_code=404, detail="File not found")
+    return renamed
 
 @app.delete("/folders/delete")
 @app.delete("/files/delete")

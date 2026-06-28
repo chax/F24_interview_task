@@ -112,6 +112,14 @@ def test_rename_to_duplicate_name_returns_400(client):
     assert response.status_code == 400
 
 
+def test_rename_missing_file_returns_404(client):
+    response = client.post(
+        "/files/rename", params={"file_id": 99999, "name": "new.txt"}
+    )
+
+    assert response.status_code == 404
+
+
 def test_delete_file(client):
     file = client.post("/files/create", params={"name": "throwaway.txt"}).json()
 
