@@ -67,6 +67,7 @@ def create_file(session: Session, parent_id: int | None, name: str, is_folder: b
         session.refresh(file)
         return file
     except IntegrityError as e:
+        session.rollback()
         raise UniqueNameError(e)
 
 
@@ -82,6 +83,7 @@ def rename_file(session: Session, file_id: int, name: str) -> File:
         session.refresh(file)
         return file
     except IntegrityError as e:
+        session.rollback()
         raise UniqueNameError(e)
 
 
