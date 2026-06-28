@@ -2,3 +2,8 @@
 __pycache__
 database.db
 .git
+tests
+pytest.ini
+requirements-dev.txt
+.coverage
+.pytest_cache
