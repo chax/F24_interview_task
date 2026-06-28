@@ -197,6 +197,30 @@ def test_search_file_excludes_non_prefix_matches(session):
     assert crud.search_file(session, "bar", root.id) == []
 
 
+def test_search_file_treats_percent_as_literal_not_wildcard(session):
+    root = crud.get_or_create_root_folder(session)
+    crud.create_file(session, root.id, "100%off.txt", is_folder=False)
+    crud.create_file(session, root.id, "100xyz.txt", is_folder=False)
+
+    assert crud.search_file(session, "100%", root.id) == ["100%off.txt"]
+
+
+def test_search_file_treats_underscore_as_literal_not_wildcard(session):
+    root = crud.get_or_create_root_folder(session)
+    crud.create_file(session, root.id, "a_b.txt", is_folder=False)
+    crud.create_file(session, root.id, "axb.txt", is_folder=False)
+
+    assert crud.search_file(session, "a_", root.id) == ["a_b.txt"]
+
+
+def test_search_file_with_only_wildcard_characters_matches_nothing(session):
+    root = crud.get_or_create_root_folder(session)
+    crud.create_file(session, root.id, "report.txt", is_folder=False)
+
+    assert crud.search_file(session, "%", root.id) == []
+    assert crud.search_file(session, "_", root.id) == []
+
+
 def test_search_file_excludes_folders(session):
     root = crud.get_or_create_root_folder(session)
     crud.create_file(session, root.id, "fooFolder", is_folder=True)

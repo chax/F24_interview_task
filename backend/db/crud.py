@@ -28,6 +28,18 @@ class UniqueNameError(Exception):
 class FolderNotEmptyError(Exception):
     pass
 
+
+def _escape_like(value: str, escape_char: str = "\\") -> str:
+    # Escape LIKE metacharacters so a literal "%" or "_" in user input isn't
+    # treated as a wildcard. Order matters: the escape char itself must be
+    # escaped first, or a literal backslash would mask the next replacement.
+    return (
+        value.replace(escape_char, escape_char * 2)
+        .replace("%", f"{escape_char}%")
+        .replace("_", f"{escape_char}_")
+    )
+
+
 def get_by_id(session: Session, file_id: int) -> File | None:
     return session.get(File, file_id)
 
@@ -49,9 +61,9 @@ def get_children(
     parent_id: int | None,
     is_folder: bool,
 ) -> list[File]:
-    statement = select(File).where(File.parent_id == parent_id)
-    if is_folder is not None:
-        statement = statement.where(File.is_folder == is_folder)
+    statement = select(File) \
+        .where(File.parent_id == parent_id) \
+        .where(File.is_folder == is_folder)
     return list(session.exec(statement))
 
 
@@ -90,16 +102,20 @@ def rename_file(session: Session, file_id: int, name: str) -> File:
 def delete_file(session: Session, file_id: int, recursive: bool = False) -> None:
     file = get_by_id(session, file_id)
     if file is not None:
-        if len(file.children) == 0 or len(file.children) > 0 and recursive:
+        if not file.children or recursive:
             session.delete(file)
             session.commit()
         else:
             raise FolderNotEmptyError()
 
 def search_file(session: Session, starts_with: str, parent_id: int, limit: int = 10) -> list[str]:
-    search_query = "SELECT DISTINCT name FROM FileTree WHERE name LIKE :starts_with AND is_folder = 0 ORDER BY name LIMIT :limit"
+    search_query = (
+        "SELECT DISTINCT name FROM FileTree "
+        "WHERE name LIKE :starts_with ESCAPE '\\' AND is_folder = 0 "
+        "ORDER BY name LIMIT :limit"
+    )
     query = text(RECURSIVE_FILE_TREE + search_query)
-    params = {"parent_id": parent_id, "starts_with": f"{starts_with}%", "limit": limit}
+    params = {"parent_id": parent_id, "starts_with": f"{_escape_like(starts_with)}%", "limit": limit}
     result = session.exec(query, params=params).scalars().all()
     return result
 
